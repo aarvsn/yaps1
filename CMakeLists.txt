@@ -21,7 +21,7 @@ include(FetchContent)
 FetchContent_Declare(
     fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG        11.0.2
+    GIT_TAG        10.2.1
 )
 FetchContent_MakeAvailable(fmt)
 
@@ -30,7 +30,7 @@ FetchContent_Declare(
     SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
     GIT_TAG        release-3.2.0
-    CMAKE_ARGS     -DSDL_TESTS=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_STATIC=ON -DSDL_SHARED=OFF
+    CMAKE_ARGS     -DSDL_TESTS=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_STATIC=ON -DSDL_SHARED=OFF -DSDL_UNIX_CONSOLE_BUILD=ON
 )
 FetchContent_MakeAvailable(SDL3)
 
