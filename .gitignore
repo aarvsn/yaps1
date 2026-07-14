@@ -1,0 +1,36 @@
+# Build
+build/
+cmake-build-*/
+out/
+*.o
+*.obj
+*.exe
+*.out
+*.app
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.sln
+*.vcxproj*
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project
+*.mcd
+*.bin
+*.cue
+*.iso
+*.img
+config.toml
+
+# Release archives
+*.zip
+*.tar.gz
+*.7z

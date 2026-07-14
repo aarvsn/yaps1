@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            artifact_name: YAPS1
+            asset_suffix: linux-x86_64
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-24.04
+            artifact_name: YAPS1
+            asset_suffix: linux-x86_64-clang
+            cc: clang
+            cxx: clang++
+          - os: windows-latest
+            artifact_name: YAPS1.exe
+            asset_suffix: windows-x86_64
+          - os: macos-latest
+            artifact_name: YAPS1
+            asset_suffix: macos-arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libgl-dev libvulkan-dev zlib1g-dev
+
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+
+      - name: Locate binary
+        id: bin
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            BINARY="build/Release/YAPS1.exe"
+          else
+            BINARY="build/YAPS1"
+          fi
+          echo "path=$BINARY" >> "$GITHUB_OUTPUT"
+          test -f "$BINARY"
+
+      - name: Package (non-Windows)
+        if: runner.os != 'Windows'
+        run: |
+          strip -s ${{ steps.bin.outputs.path }} -o YAPS1-${{ matrix.asset_suffix }}
+          tar czf YAPS1-${{ matrix.asset_suffix }}.tar.gz YAPS1-${{ matrix.asset_suffix }}
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "build/Release/YAPS1.exe" -DestinationPath "YAPS1-${{ matrix.asset_suffix }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YAPS1-${{ matrix.asset_suffix }}
+          path: |
+            YAPS1-${{ matrix.asset_suffix }}.tar.gz
+            YAPS1-${{ matrix.asset_suffix }}.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            YAPS1-${{ matrix.asset_suffix }}.tar.gz
+            YAPS1-${{ matrix.asset_suffix }}.zip
+          generate_release_notes: true
