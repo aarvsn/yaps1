@@ -54,7 +54,7 @@ static void load_key_mapping(const Path& path, Pad& pad) {
     // Map PS1 button names to SDL scancodes.
     auto scancode_from_name = [](const std::string& name) -> int {
         auto upper = name;
-        std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+        std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
 
         if (upper == "SPACE" || upper == "CROSS")     return SDL_SCANCODE_SPACE;
         if (upper == "L" || upper == "CIRCLE")         return SDL_SCANCODE_L;

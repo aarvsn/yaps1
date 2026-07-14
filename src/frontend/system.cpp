@@ -58,7 +58,7 @@ Result<bool> System::init(const Config& config, const Path& exe_dir) {
                 auto name = entry.path().filename().string();
                 // Convert to uppercase for comparison.
                 std::string upper = name;
-                std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+                std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
                 if (upper.ends_with(".BIN")) {
                     bios_files.push_back(entry.path());
                     if (upper == "SCPH1001.BIN") preferred = entry.path();
