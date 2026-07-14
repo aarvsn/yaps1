@@ -61,15 +61,14 @@ void Cop0::rfe() {
     //   IEc <- IEp,  KUc <- KUp
     //   IEp <- IEo,  KUp <- KUo
     u32 sr = regs_[SR];
-    u32 ie  = (sr & 0x00000003u);           // bits 1:0  (IEc, KUc)
-    u32 iep = (sr & 0x00000300u) >> 8;      // bits 9:8  (IEp, KUp)
-    u32 ieo = (sr & 0x00030000u) >> 16;     // bits 17:16 (IEo, KUo)
+    // Lower 6 bits are: KUo, IEo, KUp, IEp, KUc, IEc (bits 5:0)
+    u32 stack = sr & 0x3Fu;
+    // Shift the stack right by 2 bits to pop: KUc, IEc get KUp, IEp. KUp, IEp get KUo, IEo.
+    u32 shifted_stack = (stack >> 2) & 0xFu;
+    // KUo and IEo (bits 5:4) remain unchanged.
+    u32 unchanged_part = stack & 0x30u;
 
-    sr &= ~0x00030003u;                     // clear bits 17:16, 1:0
-    sr |= (iep << 0);                       // IEc <- IEp, KUc <- KUp
-    sr |= (ieo << 8);                       // IEp <- IEo, KUp <- KUo
-
-    regs_[SR] = sr;
+    regs_[SR] = (sr & ~0x3Fu) | unchanged_part | shifted_stack;
 }
 
 } // namespace yaps1

@@ -10,7 +10,8 @@ if(MSVC)
     add_compile_options(/W4 /WX /utf-8 /permissive-)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS NOMINMAX)
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic)
+    add_compile_options(-Wall -Wextra -Wpedantic -fsanitize=address,undefined -g)
+    add_link_options(-fsanitize=address,undefined)
 endif()
 
 # ---- Dependencies (bundled) ----
@@ -78,6 +79,24 @@ endif()
 
 # ---- Install ----
 install(TARGETS YAPS1 RUNTIME DESTINATION bin)
+
+# ---- Tests ----
+enable_testing()
+
+add_executable(test_emulator
+    tests/test_emulator.cpp
+    src/cpu/cpu.cpp
+    src/cpu/cop0.cpp
+)
+
+target_include_directories(test_emulator PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(test_emulator PRIVATE fmt::fmt)
+
+add_test(NAME test_emulator COMMAND test_emulator)
 
 # ---- Default config / mapping files ----
 # These are copied on first run by the emulator if they don't exist.

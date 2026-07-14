@@ -402,9 +402,11 @@ void Cpu::exec_special2(u32 instr) {
         if (load_delay_reg_ == static_cast<int>(rd)) load_delay_reg_ = -1;
     }
 
-    u32 target = pc_ + (imm << 2);
-    branch_target_ = target;
-    branch_pending_ = true;
+    if (condition) {
+        u32 target = pc_ + (imm << 2);
+        branch_target_ = target;
+        branch_pending_ = true;
+    }
     total_cycles_ += 1;  // branch cost
 }
 
