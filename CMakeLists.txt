@@ -14,6 +14,10 @@ else()
     add_link_options(-fsanitize=address,undefined)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT APPLE)
+    add_compile_definitions(__cpp_concepts=202002L)
+endif()
+
 # ---- Dependencies (bundled) ----
 include(FetchContent)
 
@@ -26,10 +30,28 @@ FetchContent_Declare(
 FetchContent_GetProperties(fmt)
 if(NOT fmt_POPULATED)
     FetchContent_Populate(fmt)
+
+    # Patch fmt/core.h and fmt/base.h to disable consteval on Apple Clang 21+
+    foreach(FMT_HEADER "${fmt_SOURCE_DIR}/include/fmt/core.h" "${fmt_SOURCE_DIR}/include/fmt/base.h")
+        if(EXISTS "${FMT_HEADER}")
+            file(READ "${FMT_HEADER}" FMT_CONTENT)
+            string(REPLACE "#ifndef FMT_CONSTEVAL" "#if defined(__APPLE__)\n#  define FMT_CONSTEVAL\n#endif\n#ifndef FMT_CONSTEVAL" FMT_CONTENT_PATCHED "${FMT_CONTENT}")
+            file(WRITE "${FMT_HEADER}" "${FMT_CONTENT_PATCHED}")
+        endif()
+    endforeach()
+
     add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
 # SDL3
+set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+set(SDL_X11 OFF CACHE BOOL "" FORCE)
+set(SDL_WAYLAND OFF CACHE BOOL "" FORCE)
+set(SDL_UNIX_CONSOLE_BUILD ON CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
