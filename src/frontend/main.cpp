@@ -212,7 +212,6 @@ int main(int argc, char* argv[]) {
 
     // ---- Main loop ----
     auto frame_target_us = 1000000 / config->fps_limit;
-    auto last_frame_time = std::chrono::steady_clock::now();
 
     while (g_running.load()) {
         auto frame_start = std::chrono::steady_clock::now();

@@ -110,8 +110,8 @@ void Spu::write16(u32 offset, u16 val) {
 
     // Voice registers (each voice: 8 x 16-bit regs = 16 bytes)
     if (offset < 0x180) {
-        int voice_idx = offset / 16;
-        int reg = (offset % 16) / 2;
+        u32 voice_idx = offset / 16;
+        u32 reg = (offset % 16) / 2;
         if (voice_idx < NUM_VOICES) {
             switch (reg) {
                 case 0: voices_[voice_idx].volume_left = val;  break;
@@ -195,7 +195,7 @@ u16 Spu::read16(u32 offset) {
     // Voice ON/OFF status
     if (offset == 0x1EA) {
         u16 result = 0;
-        for (int i = 0; i < NUM_VOICES; i++) {
+        for (u32 i = 0; i < NUM_VOICES; i++) {
             if (voices_[i].on) result |= (1u << i);
         }
         return result;
@@ -363,7 +363,7 @@ void Spu::mix(i16* stereo_out, u32 count) {
         i32 mix_r = 0;
 
         // Mix each active voice
-        for (int i = 0; i < NUM_VOICES; i++) {
+        for (u32 i = 0; i < NUM_VOICES; i++) {
             Voice& v = voices_[i];
             if (!v.on) continue;
 
