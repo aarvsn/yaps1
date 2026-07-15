@@ -55,6 +55,7 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
+        shell: bash
         run: cmake --build build -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
       - name: Locate binary
@@ -72,7 +73,11 @@ jobs:
       - name: Package (non-Windows)
         if: runner.os != 'Windows'
         run: |
-          strip -s ${{ steps.bin.outputs.path }} -o YAPS1-${{ matrix.asset_suffix }}
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            strip ${{ steps.bin.outputs.path }} -o YAPS1-${{ matrix.asset_suffix }}
+          else
+            strip -s ${{ steps.bin.outputs.path }} -o YAPS1-${{ matrix.asset_suffix }}
+          fi
           tar czf YAPS1-${{ matrix.asset_suffix }}.tar.gz YAPS1-${{ matrix.asset_suffix }}
 
       - name: Package (Windows)
