@@ -10,8 +10,9 @@ permissions:
 
 jobs:
   release:
-    name: Build & Release
+    name: Build & Release (${{ matrix.os }}, ${{ matrix.asset_suffix }})
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -21,14 +22,17 @@ jobs:
             asset_suffix: linux-x86_64
             cc: gcc
             cxx: g++
+
           - os: ubuntu-24.04
             artifact_name: YAPS1
             asset_suffix: linux-x86_64-clang
             cc: clang
             cxx: clang++
+
           - os: windows-latest
             artifact_name: YAPS1.exe
             asset_suffix: windows-x86_64
+
           - os: macos-latest
             artifact_name: YAPS1
             asset_suffix: macos-arm64
@@ -44,7 +48,10 @@ jobs:
 
       - name: Configure (Linux)
         if: runner.os == 'Linux'
-        run: CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: |
+          CC=${{ matrix.cc }} \
+          CXX=${{ matrix.cxx }} \
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
@@ -56,7 +63,12 @@ jobs:
 
       - name: Build
         shell: bash
-        run: cmake --build build -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cmake --build build --config Release
+          else
+            cmake --build build --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+          fi
 
       - name: Locate binary
         id: bin
@@ -67,24 +79,36 @@ jobs:
           else
             BINARY="build/YAPS1"
           fi
-          echo "path=$BINARY" >> "$GITHUB_OUTPUT"
-          test -f "$BINARY"
 
-      - name: Package (non-Windows)
-        if: runner.os != 'Windows'
-        run: |
-          if [ "${{ runner.os }}" = "macOS" ]; then
-            strip ${{ steps.bin.outputs.path }} -o YAPS1-${{ matrix.asset_suffix }}
-          else
-            strip -s ${{ steps.bin.outputs.path }} -o YAPS1-${{ matrix.asset_suffix }}
+          echo "path=$BINARY" >> "$GITHUB_OUTPUT"
+
+          if [ ! -f "$BINARY" ]; then
+            echo "Binary not found: $BINARY"
+            find build -type f
+            exit 1
           fi
-          tar czf YAPS1-${{ matrix.asset_suffix }}.tar.gz YAPS1-${{ matrix.asset_suffix }}
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cp "${{ steps.bin.outputs.path }}" "YAPS1-${{ matrix.asset_suffix }}"
+          strip -s "YAPS1-${{ matrix.asset_suffix }}"
+          tar czf "YAPS1-${{ matrix.asset_suffix }}.tar.gz" "YAPS1-${{ matrix.asset_suffix }}"
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cp "${{ steps.bin.outputs.path }}" "YAPS1-${{ matrix.asset_suffix }}"
+          strip "YAPS1-${{ matrix.asset_suffix }}"
+          tar czf "YAPS1-${{ matrix.asset_suffix }}.tar.gz" "YAPS1-${{ matrix.asset_suffix }}"
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path "build/Release/YAPS1.exe" -DestinationPath "YAPS1-${{ matrix.asset_suffix }}.zip"
+          Compress-Archive `
+            -Path "build/Release/YAPS1.exe" `
+            -DestinationPath "YAPS1-${{ matrix.asset_suffix }}.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -93,6 +117,7 @@ jobs:
           path: |
             YAPS1-${{ matrix.asset_suffix }}.tar.gz
             YAPS1-${{ matrix.asset_suffix }}.zip
+          if-no-files-found: ignore
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
