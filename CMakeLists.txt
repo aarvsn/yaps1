@@ -23,14 +23,18 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
     GIT_TAG        10.2.1
 )
-FetchContent_MakeAvailable(fmt)
+FetchContent_GetProperties(fmt)
+if(NOT fmt_POPULATED)
+    FetchContent_Populate(fmt)
+    add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 # SDL3
 FetchContent_Declare(
     SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
     GIT_TAG        release-3.2.0
-    CMAKE_ARGS     -DSDL_TESTS=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_STATIC=ON -DSDL_SHARED=OFF -DSDL_X11=OFF -DSDL_WAYLAND=OFF
+    CMAKE_ARGS     -DSDL_TESTS=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_STATIC=ON -DSDL_SHARED=OFF -DSDL_X11=OFF -DSDL_WAYLAND=OFF -DSDL_UNIX_CONSOLE_BUILD=ON
 )
 FetchContent_MakeAvailable(SDL3)
 
@@ -56,8 +60,8 @@ target_include_directories(YAPS1 PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Link SDL3 and fmt
-target_link_libraries(YAPS1 PRIVATE SDL3::SDL3 fmt::fmt)
+# Link SDL3 and fmt-header-only
+target_link_libraries(YAPS1 PRIVATE SDL3::SDL3 fmt::fmt-header-only)
 
 # Link threading library on non-Windows
 if(NOT WIN32)
@@ -94,7 +98,7 @@ target_include_directories(test_emulator PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(test_emulator PRIVATE fmt::fmt)
+target_link_libraries(test_emulator PRIVATE fmt::fmt-header-only)
 
 add_test(NAME test_emulator COMMAND test_emulator)
 
