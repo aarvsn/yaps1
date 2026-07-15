@@ -14,8 +14,8 @@ else()
     add_link_options(-fsanitize=address,undefined)
 endif()
 
-if(APPLE)
-    add_compile_definitions(FMT_CONSTEVAL=)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_definitions(__cpp_concepts=202002L)
 endif()
 
 # ---- Dependencies (bundled) ----
@@ -30,6 +30,18 @@ FetchContent_Declare(
 FetchContent_GetProperties(fmt)
 if(NOT fmt_POPULATED)
     FetchContent_Populate(fmt)
+
+    # Patch fmt/core.h and fmt/base.h to disable consteval on Apple Clang 21+
+    foreach(FMT_HEADER "${fmt_SOURCE_DIR}/include/fmt/core.h" "${fmt_SOURCE_DIR}/include/fmt/base.h")
+        if(EXISTS "${FMT_HEADER}")
+            file(READ "${FMT_HEADER}" FMT_CONTENT)
+            string(REPLACE "__apple_build_version__ >= 14000029L" "0" FMT_CONTENT_PATCHED "${FMT_CONTENT}")
+            # Support newer fmt version pattern where they check __apple_build_version__
+            string(REPLACE "defined(__apple_build_version__) && __apple_build_version__ < 14000029L" "defined(__apple_build_version__)" FMT_CONTENT_PATCHED "${FMT_CONTENT_PATCHED}")
+            file(WRITE "${FMT_HEADER}" "${FMT_CONTENT_PATCHED}")
+        endif()
+    endforeach()
+
     add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
