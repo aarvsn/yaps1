@@ -41,7 +41,7 @@ void Cdrom::reset() {
 Result<bool> Cdrom::load_disc(const Path& path) {
     std::string ext = path.extension().string();
     // Convert to lowercase
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     if (ext == ".cue") {
         // Parse CUE file to find the BIN.

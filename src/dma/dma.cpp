@@ -163,8 +163,6 @@ void Dma::trigger(u32 channel) {
 
     // Direction: bit 0 = to RAM (device read), 1 = from RAM (device write)
     bool to_ram = (chcr & 1) == 0;
-    // Transfer mode
-    u32 mode = (chcr >> 9) & 3;
     // Sync mode
     u32 sync = (chcr >> 9) & 3;
 

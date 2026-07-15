@@ -54,7 +54,7 @@ static void load_key_mapping(const Path& path, Pad& pad) {
     // Map PS1 button names to SDL scancodes.
     auto scancode_from_name = [](const std::string& name) -> int {
         auto upper = name;
-        std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+        std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
 
         if (upper == "SPACE" || upper == "CROSS")     return SDL_SCANCODE_SPACE;
         if (upper == "L" || upper == "CIRCLE")         return SDL_SCANCODE_L;
@@ -179,8 +179,8 @@ int main(int argc, char* argv[]) {
     LOG_INFO("Loading Disc...");
 
     // ---- Create and initialize system ----
-    System system;
-    auto init_result = system.init(*config, exe_dir);
+    auto system = std::make_unique<System>();
+    auto init_result = system->init(*config, exe_dir);
     if (!init_result) {
         LOG_ERROR("{}", init_result.error().message);
         return 1;
@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
     LOG_INFO("Initializing CPU...");
 
     // ---- Load game disc ----
-    auto disc_result = system.load_disc(game_path);
+    auto disc_result = system->load_disc(game_path);
     if (!disc_result) {
         LOG_ERROR("{}", disc_result.error().message);
         return 1;
@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
 
     // ---- Load controller mapping ----
     Path mapping_path = exe_dir / "mapping.toml";
-    load_key_mapping(mapping_path, system.pad());
+    load_key_mapping(mapping_path, system->pad());
 
     // ---- Setup signal handlers ----
     std::signal(SIGINT, signal_handler);
@@ -212,13 +212,12 @@ int main(int argc, char* argv[]) {
 
     // ---- Main loop ----
     auto frame_target_us = 1000000 / config->fps_limit;
-    auto last_frame_time = std::chrono::steady_clock::now();
 
     while (g_running.load()) {
         auto frame_start = std::chrono::steady_clock::now();
 
         // Run one frame of emulation.
-        system.frame();
+        system->frame();
 
         // Frame rate limiting.
         auto frame_end = std::chrono::steady_clock::now();
@@ -233,7 +232,7 @@ int main(int argc, char* argv[]) {
 
     // ---- Cleanup ----
     LOG_INFO("Saving memory cards...");
-    system.save_memcards();
+    system->save_memcards();
 
     LOG_INFO("YAPS1 shutting down.");
     SDL_Quit();

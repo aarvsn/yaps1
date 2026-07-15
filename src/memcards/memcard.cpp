@@ -152,7 +152,7 @@ void MemoryCard::write_byte(u8 val) {
                 if (byte_offset_ >= FRAME_SIZE) {
                     // Write complete. Optionally auto-save.
                     tx_state_ = TxState::Idle;
-                    save();  // Auto-save after each sector write.
+                    (void)save();  // Auto-save after each sector write.
                 }
             }
             break;

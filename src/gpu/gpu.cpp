@@ -391,7 +391,7 @@ void Gpu::fill_rect(u32 x, u32 y, u32 w, u32 h, u16 color) {
 //  Draw polygon (triangle / quad)
 // ===========================================================================
 
-void Gpu::draw_poly_triangle(bool textured, bool shaded, u32* params) {
+void Gpu::draw_poly_triangle(bool /*textured*/, bool shaded, u32* params) {
     // params layout:
     //   Non-textured, flat:  [color, x0,y0, x1,y1, x2,y2]  (4 words)
     //   Non-textured, gouraud: [color0,x0,y0, color1,x1,y1, color2,x2,y2] (6 words)

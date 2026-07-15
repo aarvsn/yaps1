@@ -266,7 +266,7 @@ u8 Pad::read8(u32 offset) {
                 return val;
             }
             return 0xFF;
-        case 0x04: return joy_stat_;
+        case 0x04: return static_cast<u8>(joy_stat_);
         case 0x08: return joy_baud_;
         case 0x0A: return joy_ctrl_;
     }

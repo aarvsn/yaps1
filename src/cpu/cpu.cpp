@@ -402,9 +402,11 @@ void Cpu::exec_special2(u32 instr) {
         if (load_delay_reg_ == static_cast<int>(rd)) load_delay_reg_ = -1;
     }
 
-    u32 target = pc_ + (imm << 2);
-    branch_target_ = target;
-    branch_pending_ = true;
+    if (condition) {
+        u32 target = pc_ + (imm << 2);
+        branch_target_ = target;
+        branch_pending_ = true;
+    }
     total_cycles_ += 1;  // branch cost
 }
 
@@ -758,7 +760,6 @@ void Cpu::exec_cop2(u32 instr) {
     switch (fmt) {
         case 0x00: { // MFC2
             u32 rt = (instr >> 16) & 0x1F;
-            u32 rd = (instr >> 11) & 0x1F;
             // Return 0 for all GTE data registers (stub)
             load_delay_reg_ = static_cast<int>(rt);
             load_delay_val_ = 0;
@@ -766,7 +767,6 @@ void Cpu::exec_cop2(u32 instr) {
         }
         case 0x02: { // CFC2 — Move Control From COP2
             u32 rt = (instr >> 16) & 0x1F;
-            u32 rd = (instr >> 11) & 0x1F;
             load_delay_reg_ = static_cast<int>(rt);
             load_delay_val_ = 0;
             break;
