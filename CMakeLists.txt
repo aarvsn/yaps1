@@ -14,6 +14,10 @@ else()
     add_link_options(-fsanitize=address,undefined)
 endif()
 
+if(APPLE)
+    add_compile_definitions(FMT_CONSTEVAL=)
+endif()
+
 # ---- Dependencies (bundled) ----
 include(FetchContent)
 
@@ -30,6 +34,14 @@ if(NOT fmt_POPULATED)
 endif()
 
 # SDL3
+set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+set(SDL_X11 OFF CACHE BOOL "" FORCE)
+set(SDL_WAYLAND OFF CACHE BOOL "" FORCE)
+set(SDL_UNIX_CONSOLE_BUILD ON CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
