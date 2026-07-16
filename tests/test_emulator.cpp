@@ -166,6 +166,103 @@ void test_cpu_special2_branching() {
     std::cout << "  test_cpu_special2_branching PASSED!" << std::endl;
 }
 
+void test_cpu_unaligned_mem() {
+    std::cout << "[Test] Running test_cpu_unaligned_mem..." << std::endl;
+    MockBus bus;
+    Cpu cpu(&bus);
+
+    // Write unaligned word 0xDDCCBBAA starting at address 0x101
+    // Word 0 at 0x100: 0xCCBBAA00 (AA at 0x101, BB at 0x102, CC at 0x103)
+    // Word 1 at 0x104: 0x000000DD (DD at 0x104)
+    bus.write32(0x100, 0xCCBBAA00u);
+    bus.write32(0x104, 0x000000DDu);
+
+    // Let's test LWL and LWR merging
+    // LWL $t0, 0x104
+    // LWR $t0, 0x101
+    u32 lwl_instr = (0x22u << 26) | (0x00u << 21) | (0x08u << 16) | 0x0104u;
+    u32 lwr_instr = (0x26u << 26) | (0x00u << 21) | (0x08u << 16) | 0x0101u;
+
+    // We can execute LWL and LWR back to back!
+    cpu.reset();
+    cpu.set_reg(8, 0x11223344u); // Initial $t0 = 0x11223344
+    bus.set_instr(0xBFC00000u, lwl_instr);
+    bus.set_instr(0xBFC00004u, lwr_instr);
+    bus.set_instr(0xBFC00008u, 0); // NOP for pipeline to commit
+
+    cpu.step(); // Execute LWL (sets next_load_delay_reg_ = 8, val = 0xDD223344)
+    cpu.step(); // Execute LWR (merges with pending load, sets next_load_delay_reg_ = 8, val = 0xDDCCBBAA)
+    cpu.step(); // Execute NOP (commits $t0 = 0xDDCCBBAA)
+
+    std::cout << "  Unaligned LWL+LWR merged value: 0x" << std::hex << cpu.gpr(8) << std::dec << std::endl;
+    assert(cpu.gpr(8) == 0xDDCCBBAAu);
+
+    // Let's test unaligned stores (SWL and SWR)
+    // SWL $t1, 0x204
+    // SWR $t1, 0x201
+    // We will store 0x55667788 starting at address 0x201
+    u32 swl_instr = (0x2Au << 26) | (0x00u << 21) | (0x09u << 16) | 0x0204u;
+    u32 swr_instr = (0x2Eu << 26) | (0x00u << 21) | (0x09u << 16) | 0x0201u;
+
+    cpu.reset();
+    cpu.set_reg(9, 0x55667788u); // $t1 = 0x55667788
+    bus.write32(0x200, 0); // Clear memory
+    bus.write32(0x204, 0);
+    bus.set_instr(0xBFC00000u, swl_instr);
+    bus.set_instr(0xBFC00004u, swr_instr);
+
+    cpu.step(); // Execute SWL
+    cpu.step(); // Execute SWR
+
+    u32 w0 = bus.read32(0x200);
+    u32 w1 = bus.read32(0x204);
+    std::cout << "  Unaligned SWL+SWR stored: w0=0x" << std::hex << w0 << ", w1=0x" << w1 << std::dec << std::endl;
+    assert((w0 & 0xFFFFFF00u) == 0x66778800u);
+    assert((w1 & 0x000000FFu) == 0x00000055u);
+
+    std::cout << "  test_cpu_unaligned_mem PASSED!" << std::endl;
+}
+
+void test_cpu_load_delay() {
+    std::cout << "[Test] Running test_cpu_load_delay..." << std::endl;
+    MockBus bus;
+    Cpu cpu(&bus);
+
+    // Load word from address 0x100 into $t0, then ADD $t0 into $t1.
+    // LW $t0, 0x100 ($t0 = rs + 0x100)
+    // ADD $t1, $t0, $zero (rt = rd = 9, rs = 8)
+    u32 lw_instr = (0x23u << 26) | (0x00u << 21) | (0x08u << 16) | 0x0100u;
+    u32 add_instr = (0x00u << 26) | (0x08u << 21) | (0x00u << 16) | (0x09u << 11) | (0x00u << 6) | 0x20u;
+
+    bus.write32(0x100, 0x77777777u);
+
+    cpu.reset();
+    cpu.set_reg(8, 0x11111111u); // Initial $t0 = 0x11111111
+    cpu.set_reg(9, 0);          // Initial $t1 = 0
+    bus.set_instr(0xBFC00000u, lw_instr);
+    bus.set_instr(0xBFC00004u, add_instr);
+    bus.set_instr(0xBFC00008u, 0); // NOP to let second delay commit
+
+    cpu.step(); // Executes LW. Sets next_load_delay_reg_ = 8.
+                // At end of step: load_delay_reg_ = 8, regs_[8] still 0x11111111.
+
+    // Second step executes ADD.
+    // It reads $t0. Since regs_[8] is still 0x11111111, ADD should use 0x11111111!
+    cpu.step(); // Executes ADD.
+                // At end of step: commits LW ($t0 = 0x77777777).
+
+    // Third step executes NOP.
+    cpu.step(); // At end of step: commits ADD's result to $t1.
+
+    std::cout << "  Load delay value test: $t0 = 0x" << std::hex << cpu.gpr(8) << ", $t1 = 0x" << cpu.gpr(9) << std::dec << std::endl;
+    // $t0 must have the loaded value 0x77777777u after the delay slot instruction executes.
+    assert(cpu.gpr(8) == 0x77777777u);
+    // $t1 must have the sum using the STALE value of $t0 (0x11111111 + 0 = 0x11111111)!
+    assert(cpu.gpr(9) == 0x11111111u);
+
+    std::cout << "  test_cpu_load_delay PASSED!" << std::endl;
+}
+
 int main() {
     std::cout << "====================================================" << std::endl;
     std::cout << "             YAPS1 EMULATOR TEST SUITE              " << std::endl;
@@ -173,6 +270,8 @@ int main() {
 
     test_cop0_rfe();
     test_cpu_special2_branching();
+    test_cpu_unaligned_mem();
+    test_cpu_load_delay();
 
     std::cout << "\nAll emulator unit tests passed successfully!" << std::endl;
     return 0;

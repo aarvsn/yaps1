@@ -24,6 +24,7 @@ Pad::~Pad() {
 
 void Pad::reset() {
     buttons_ = 0xFFFF;
+    exit_requested_ = false;
     joy_state_ = JoyState::Idle;
     joy_ctrl_ = 0;
     joy_stat_ = 0x5A02;
@@ -148,11 +149,12 @@ void Pad::update() {
 
     buttons_ = state;
 
-    // Handle controller hot-plug.
-    // SDL events are processed in the main loop; we detect connect/disconnect.
+    // Handle controller hot-plug and window exit events.
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_EVENT_GAMEPAD_ADDED) {
+        if (event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
+            exit_requested_ = true;
+        } else if (event.type == SDL_EVENT_GAMEPAD_ADDED) {
             if (sdl_controller_ == nullptr) {
                 scan_controllers();
             }
