@@ -20,6 +20,21 @@ System::System()
     // are set in init().
 }
 
+System::~System() {
+    if (texture_) {
+        SDL_DestroyTexture(texture_);
+        texture_ = nullptr;
+    }
+    if (renderer_) {
+        SDL_DestroyRenderer(renderer_);
+        renderer_ = nullptr;
+    }
+    if (window_) {
+        SDL_DestroyWindow(window_);
+        window_ = nullptr;
+    }
+}
+
 // ===========================================================================
 //  Initialize
 // ===========================================================================
@@ -122,6 +137,26 @@ Result<bool> System::init(const Config& config, const Path& exe_dir) {
     // ---- Initialize SDL for input ----
     pad_.init_sdl();
 
+    // ---- Create Window and Renderer for GPU display ----
+    if (SDL_WasInit(SDL_INIT_VIDEO)) {
+        window_ = SDL_CreateWindow("YAPS1 — Yet Another PlayStation 1 Emulator", 1024, 512, 0);
+        if (window_) {
+            renderer_ = SDL_CreateRenderer(window_, nullptr);
+            if (renderer_) {
+                texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_XRGB1555, SDL_TEXTUREACCESS_STREAMING, 1024, 512);
+                if (texture_) {
+                    LOG_INFO("Created SDL window & renderer successfully");
+                } else {
+                    LOG_WARN("Failed to create SDL texture: {}", SDL_GetError());
+                }
+            } else {
+                LOG_WARN("Failed to create SDL renderer: {}", SDL_GetError());
+            }
+        } else {
+            LOG_WARN("Failed to create SDL window: {}", SDL_GetError());
+        }
+    }
+
     LOG_INFO("YAPS1 initialized successfully");
     return true;
 }
@@ -171,6 +206,14 @@ void System::frame() {
 
     // Poll input.
     pad_.update();
+
+    // ---- Render GPU frame to window ----
+    if (renderer_ && texture_) {
+        SDL_UpdateTexture(texture_, nullptr, gpu_.vram(), 1024 * sizeof(u16));
+        SDL_RenderClear(renderer_);
+        SDL_RenderTexture(renderer_, texture_, nullptr, nullptr);
+        SDL_RenderPresent(renderer_);
+    }
 
     // Track FPS.
     update_fps();

@@ -17,13 +17,17 @@
 #include "config/config.h"
 #include <memory>
 
+struct SDL_Window;
+struct SDL_Renderer;
+struct SDL_Texture;
+
 namespace yaps1 {
 
 /// Owns and orchestrates all PS1 hardware subsystems.
 class System {
 public:
     System();
-    ~System() = default;
+    ~System();
 
     /// Full initialization: load BIOS, create directories, wire subsystems.
     Result<bool> init(const Config& config, const Path& exe_dir);
@@ -98,6 +102,11 @@ private:
     // Timing
     static constexpr u32 CPU_CLOCK_HZ = 33868800;
     static constexpr u32 CYCLES_PER_FRAME = CPU_CLOCK_HZ / 60;  // ~564480
+
+    // SDL Window rendering members
+    SDL_Window*   window_   = nullptr;
+    SDL_Renderer* renderer_ = nullptr;
+    SDL_Texture*  texture_  = nullptr;
 };
 
 } // namespace yaps1

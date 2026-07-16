@@ -213,7 +213,7 @@ int main(int argc, char* argv[]) {
     // ---- Main loop ----
     auto frame_target_us = 1000000 / config->fps_limit;
 
-    while (g_running.load()) {
+    while (g_running.load() && !system->pad().exit_requested()) {
         auto frame_start = std::chrono::steady_clock::now();
 
         // Run one frame of emulation.

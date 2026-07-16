@@ -132,6 +132,8 @@ private:
     /// If rd == load_delay_reg_, the *old* value is read instead.
     int   load_delay_reg_  = -1;   // -1 means no pending load
     u32   load_delay_val_  = 0;
+    int   next_load_delay_reg_ = -1;
+    u32   next_load_delay_val_ = 0;
 
     bool  halted_ = false;
 

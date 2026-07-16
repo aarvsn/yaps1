@@ -47,8 +47,10 @@ public:
 
     // ---- State query ----
     [[nodiscard]] bool button_pressed(int btn) const { return buttons_ & (1u << btn); }
+    [[nodiscard]] bool exit_requested() const { return exit_requested_; }
 
 private:
+    bool exit_requested_ = false;
     // PS1 digital controller buttons (bit indices).
     enum Button {
         SELECT = 0,

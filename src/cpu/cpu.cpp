@@ -27,6 +27,8 @@ void Cpu::reset() {
     in_delay_slot_ = false;
     load_delay_reg_ = -1;
     load_delay_val_ = 0;
+    next_load_delay_reg_ = -1;
+    next_load_delay_val_ = 0;
     halted_ = false;
     cop0_.reset();
 }
@@ -217,8 +219,14 @@ u32 Cpu::step() {
     // We track what the current instruction wrote to, and if it's the
     // same as load_delay_reg_, we cancel the delay.
 
-    // For now, use the simple model:
+    // Commit the pending load delay from the instruction before the current one.
     commit_load_delay();
+
+    // Move the next load delay (from the current instruction) into the active slot.
+    load_delay_reg_ = next_load_delay_reg_;
+    load_delay_val_ = next_load_delay_val_;
+    next_load_delay_reg_ = -1;
+    next_load_delay_val_ = 0;
 
     // Handle branch completion.
     if (was_in_delay && branch_pending_) {
@@ -516,8 +524,8 @@ void Cpu::exec_i_type(u32 instr, u32 opcode) {
             u32 addr = rs_val + simm;
             u32 phys = translate_addr(addr);
             i8 val = static_cast<i8>(bus_->read8(phys));
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = static_cast<u32>(static_cast<i32>(val));
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = static_cast<u32>(static_cast<i32>(val));
             total_cycles_ += 1;
             break;
         }
@@ -529,8 +537,8 @@ void Cpu::exec_i_type(u32 instr, u32 opcode) {
             }
             u32 phys = translate_addr(addr);
             i16 val = static_cast<i16>(bus_->read16(phys));
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = static_cast<u32>(static_cast<i32>(val));
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = static_cast<u32>(static_cast<i32>(val));
             total_cycles_ += 1;
             break;
         }
@@ -539,16 +547,20 @@ void Cpu::exec_i_type(u32 instr, u32 opcode) {
             u32 phys = translate_addr(addr & ~3u);
             u32 aligned = bus_->read32(phys);
             u32 byte_offset = addr & 3;
+            u32 cur_rt = regs_[rt];
+            if (load_delay_reg_ == static_cast<int>(rt)) {
+                cur_rt = load_delay_val_;
+            }
             u32 result;
             switch (byte_offset) {
-                case 0: result = (aligned << 24) | (regs_[rt] & 0x00FFFFFFu); break;
-                case 1: result = ((aligned & 0x00FFFFFFu) << 8) | (regs_[rt] & 0x000000FFu); break;
-                case 2: result = ((aligned & 0x0000FFFFu) << 16) | (regs_[rt] & 0x0000FFFFu); break;
+                case 0: result = (cur_rt & 0x00FFFFFFu) | (aligned << 24); break;
+                case 1: result = (cur_rt & 0x0000FFFFu) | (aligned << 16); break;
+                case 2: result = (cur_rt & 0x000000FFu) | (aligned << 8);  break;
                 case 3: result = aligned; break;
                 default: result = 0; break;
             }
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = result;
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = result;
             total_cycles_ += 1;
             break;
         }
@@ -559,16 +571,16 @@ void Cpu::exec_i_type(u32 instr, u32 opcode) {
                 return;
             }
             u32 phys = translate_addr(addr);
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = bus_->read32(phys);
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = bus_->read32(phys);
             total_cycles_ += 1;
             break;
         }
         case 0x24: { // LBU
             u32 addr = rs_val + simm;
             u32 phys = translate_addr(addr);
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = static_cast<u32>(bus_->read8(phys));
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = static_cast<u32>(bus_->read8(phys));
             total_cycles_ += 1;
             break;
         }
@@ -579,8 +591,8 @@ void Cpu::exec_i_type(u32 instr, u32 opcode) {
                 return;
             }
             u32 phys = translate_addr(addr);
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = static_cast<u32>(bus_->read16(phys));
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = static_cast<u32>(bus_->read16(phys));
             total_cycles_ += 1;
             break;
         }
@@ -589,18 +601,20 @@ void Cpu::exec_i_type(u32 instr, u32 opcode) {
             u32 phys = translate_addr(addr & ~3u);
             u32 aligned = bus_->read32(phys);
             u32 byte_offset = addr & 3;
-
-            // Rotate the word left by byte_offset bytes.
+            u32 cur_rt = regs_[rt];
+            if (load_delay_reg_ == static_cast<int>(rt)) {
+                cur_rt = load_delay_val_;
+            }
             u32 result;
             switch (byte_offset) {
-                case 0: result = (aligned << 24) | (regs_[rt] & 0x00FFFFFFu); break;
-                case 1: result = ((aligned & 0x00FFFFFFu) << 8) | (regs_[rt] & 0x000000FFu); break;
-                case 2: result = ((aligned & 0x0000FFFFu) << 16) | (regs_[rt] & 0x0000FFFFu); break;
-                case 3: result = aligned; break;
+                case 0: result = aligned; break;
+                case 1: result = (cur_rt & 0xFF000000u) | (aligned >> 8);  break;
+                case 2: result = (cur_rt & 0xFFFF0000u) | (aligned >> 16); break;
+                case 3: result = (cur_rt & 0xFFFFFF00u) | (aligned >> 24); break;
                 default: result = 0; break;
             }
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = result;
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = result;
             total_cycles_ += 1;
             break;
         }
@@ -643,9 +657,9 @@ void Cpu::exec_i_type(u32 instr, u32 opcode) {
             u32 byte_offset = addr & 3;
             u32 result;
             switch (byte_offset) {
-                case 0: result = (rt_val >> 24) | (old_mem & 0x00FFFFFFu); break;
-                case 1: result = (rt_val >> 16) | (old_mem & 0x0000FFFFu); break;
-                case 2: result = (rt_val >> 8)  | (old_mem & 0x000000FFu); break;
+                case 0: result = (rt_val >> 24) | (old_mem & 0xFFFFFF00u); break;
+                case 1: result = (rt_val >> 16) | (old_mem & 0xFFFF0000u); break;
+                case 2: result = (rt_val >> 8)  | (old_mem & 0xFF000000u); break;
                 case 3: result = rt_val; break;
                 default: result = old_mem; break;
             }
@@ -662,9 +676,9 @@ void Cpu::exec_i_type(u32 instr, u32 opcode) {
             u32 result;
             switch (byte_offset) {
                 case 0: result = rt_val; break;
-                case 1: result = (old_mem & 0xFF000000u) | ((rt_val << 8) & 0x00FFFFFFu); break;
-                case 2: result = (old_mem & 0xFFFF0000u) | ((rt_val << 16) & 0x0000FFFFu); break;
-                case 3: result = (old_mem & 0xFFFFFF00u) | ((rt_val << 24) & 0x000000FFu); break;
+                case 1: result = (old_mem & 0x000000FFu) | (rt_val << 8); break;
+                case 2: result = (old_mem & 0x0000FFFFu) | (rt_val << 16); break;
+                case 3: result = (old_mem & 0x00FFFFFFu) | (rt_val << 24); break;
                 default: result = old_mem; break;
             }
             bus_->write32(phys, result);
@@ -714,8 +728,8 @@ void Cpu::exec_cop0(u32 instr) {
             u32 rt = (instr >> 16) & 0x1F;
             u32 rd = (instr >> 11) & 0x1F;
             u32 val = cop0_.read_reg(rd);
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = val;
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = val;
             total_cycles_ += 1;
             break;
         }
@@ -761,14 +775,14 @@ void Cpu::exec_cop2(u32 instr) {
         case 0x00: { // MFC2
             u32 rt = (instr >> 16) & 0x1F;
             // Return 0 for all GTE data registers (stub)
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = 0;
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = 0;
             break;
         }
         case 0x02: { // CFC2 — Move Control From COP2
             u32 rt = (instr >> 16) & 0x1F;
-            load_delay_reg_ = static_cast<int>(rt);
-            load_delay_val_ = 0;
+            next_load_delay_reg_ = static_cast<int>(rt);
+            next_load_delay_val_ = 0;
             break;
         }
         case 0x04: { // MTC2
@@ -875,8 +889,8 @@ void Cpu::op_break(u32 /*instr*/) {
 
 void Cpu::op_mfhi(u32 instr) {
     u32 rd = (instr >> 11) & 0x1F;
-    load_delay_reg_ = static_cast<int>(rd);
-    load_delay_val_ = hi_;
+    next_load_delay_reg_ = static_cast<int>(rd);
+    next_load_delay_val_ = hi_;
 }
 
 void Cpu::op_mthi(u32 instr) {
@@ -886,8 +900,8 @@ void Cpu::op_mthi(u32 instr) {
 
 void Cpu::op_mflo(u32 instr) {
     u32 rd = (instr >> 11) & 0x1F;
-    load_delay_reg_ = static_cast<int>(rd);
-    load_delay_val_ = lo_;
+    next_load_delay_reg_ = static_cast<int>(rd);
+    next_load_delay_val_ = lo_;
 }
 
 void Cpu::op_mtlo(u32 instr) {
