@@ -98,4 +98,4 @@ Supported disc formats: `.bin` (raw), `.cue/.bin` (CUE sheet), `.img`, `.iso` (2
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
