@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release (${{ matrix.os }}, ${{ matrix.asset_suffix }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            artifact_name: YAPS1
+            asset_suffix: linux-x86_64
+            cc: gcc
+            cxx: g++
+
+          - os: ubuntu-24.04
+            artifact_name: YAPS1
+            asset_suffix: linux-x86_64-clang
+            cc: clang
+            cxx: clang++
+
+          - os: windows-latest
+            artifact_name: YAPS1.exe
+            asset_suffix: windows-x86_64
+
+          - os: macos-latest
+            artifact_name: YAPS1
+            asset_suffix: macos-arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libgl-dev libvulkan-dev zlib1g-dev
+
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          CC=${{ matrix.cc }} \
+          CXX=${{ matrix.cxx }} \
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cmake --build build --config Release
+          else
+            cmake --build build --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+          fi
+
+      - name: Locate binary
+        id: bin
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            BINARY="build/Release/YAPS1.exe"
+          else
+            BINARY="build/YAPS1"
+          fi
+
+          echo "path=$BINARY" >> "$GITHUB_OUTPUT"
+
+          if [ ! -f "$BINARY" ]; then
+            echo "Binary not found: $BINARY"
+            find build -type f
+            exit 1
+          fi
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cp "${{ steps.bin.outputs.path }}" "YAPS1-${{ matrix.asset_suffix }}"
+          strip -s "YAPS1-${{ matrix.asset_suffix }}"
+          tar czf "YAPS1-${{ matrix.asset_suffix }}.tar.gz" "YAPS1-${{ matrix.asset_suffix }}"
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cp "${{ steps.bin.outputs.path }}" "YAPS1-${{ matrix.asset_suffix }}"
+          strip "YAPS1-${{ matrix.asset_suffix }}"
+          tar czf "YAPS1-${{ matrix.asset_suffix }}.tar.gz" "YAPS1-${{ matrix.asset_suffix }}"
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path "build/Release/YAPS1.exe" `
+            -DestinationPath "YAPS1-${{ matrix.asset_suffix }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YAPS1-${{ matrix.asset_suffix }}
+          path: |
+            YAPS1-${{ matrix.asset_suffix }}.tar.gz
+            YAPS1-${{ matrix.asset_suffix }}.zip
+          if-no-files-found: ignore
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            YAPS1-${{ matrix.asset_suffix }}.tar.gz
+            YAPS1-${{ matrix.asset_suffix }}.zip
+          generate_release_notes: true
