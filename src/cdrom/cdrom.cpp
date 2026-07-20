@@ -469,9 +469,9 @@ void Cdrom::execute_command(u8 cmd) {
             u32 leadout_min = (leadout_lba / 75) / 60;
             u32 leadout_sec = (leadout_lba / 75) % 60;
             u32 leadout_frame = leadout_lba % 75;
-            push_response(((leadout_min / 10) << 4) | (leadout_min % 10));
-            push_response(((leadout_sec / 10) << 4) | (leadout_sec % 10));
-            push_response(((leadout_frame / 10) << 4) | (leadout_frame % 10));
+            push_response(static_cast<u8>(((leadout_min / 10) << 4) | (leadout_min % 10)));
+            push_response(static_cast<u8>(((leadout_sec / 10) << 4) | (leadout_sec % 10)));
+            push_response(static_cast<u8>(((leadout_frame / 10) << 4) | (leadout_frame % 10)));
 
             set_interrupt(0x03);
             break;
@@ -511,8 +511,8 @@ Result<bool> Cdrom::load_chd(const Path& path) {
 
     u64 total_bytes = 0;
     u32 hunk_size = 0;
-    u32 unit_size = 0;
-    u64 rawmap_offset = 0;
+    [[maybe_unused]] u32 unit_size = 0;
+    [[maybe_unused]] u64 rawmap_offset = 0;
     u64 map_offset = 0;
     u64 meta_offset = 0;
 
