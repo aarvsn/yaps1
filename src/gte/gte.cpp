@@ -940,9 +940,9 @@ void Gte::rtv0(u32 /*opcode*/) {
         dr_[10] = sat(mac2, 32767);
         dr_[11] = sat(mac3, 32767);
     } else {
-        dr_[9] = std::clamp<i64>(mac1, -32768LL, 32767LL);
-        dr_[10] = std::clamp<i64>(mac2, -32768LL, 32767LL);
-        dr_[11] = std::clamp<i64>(mac3, -32768LL, 32767LL);
+        dr_[9] = static_cast<u32>(std::clamp<i64>(mac1, -32768LL, 32767LL));
+        dr_[10] = static_cast<u32>(std::clamp<i64>(mac2, -32768LL, 32767LL));
+        dr_[11] = static_cast<u32>(std::clamp<i64>(mac3, -32768LL, 32767LL));
     }
 
     cr_[16] = static_cast<u32>(mac1 & 0xFFFFFFFF);
@@ -984,9 +984,9 @@ void Gte::rtv1(u32 /*opcode*/) {
         dr_[10] = sat(mac2, 32767);
         dr_[11] = sat(mac3, 32767);
     } else {
-        dr_[9] = std::clamp<i64>(mac1, -32768LL, 32767LL);
-        dr_[10] = std::clamp<i64>(mac2, -32768LL, 32767LL);
-        dr_[11] = std::clamp<i64>(mac3, -32768LL, 32767LL);
+        dr_[9] = static_cast<u32>(std::clamp<i64>(mac1, -32768LL, 32767LL));
+        dr_[10] = static_cast<u32>(std::clamp<i64>(mac2, -32768LL, 32767LL));
+        dr_[11] = static_cast<u32>(std::clamp<i64>(mac3, -32768LL, 32767LL));
     }
 
     cr_[16] = static_cast<u32>(mac1 & 0xFFFFFFFF);
@@ -1028,9 +1028,9 @@ void Gte::rtv2(u32 /*opcode*/) {
         dr_[10] = sat(mac2, 32767);
         dr_[11] = sat(mac3, 32767);
     } else {
-        dr_[9] = std::clamp<i64>(mac1, -32768LL, 32767LL);
-        dr_[10] = std::clamp<i64>(mac2, -32768LL, 32767LL);
-        dr_[11] = std::clamp<i64>(mac3, -32768LL, 32767LL);
+        dr_[9] = static_cast<u32>(std::clamp<i64>(mac1, -32768LL, 32767LL));
+        dr_[10] = static_cast<u32>(std::clamp<i64>(mac2, -32768LL, 32767LL));
+        dr_[11] = static_cast<u32>(std::clamp<i64>(mac3, -32768LL, 32767LL));
     }
 
     cr_[16] = static_cast<u32>(mac1 & 0xFFFFFFFF);
