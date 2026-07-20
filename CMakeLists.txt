@@ -116,6 +116,7 @@ add_executable(test_emulator
     tests/test_emulator.cpp
     src/cpu/cpu.cpp
     src/cpu/cop0.cpp
+    src/gte/gte.cpp
 )
 
 target_include_directories(test_emulator PRIVATE

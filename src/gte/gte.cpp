@@ -212,9 +212,9 @@ void Gte::rtps() {
         mac3 >>= shift;
     }
 
-    i64 ir1 = std::clamp(mac1, -32768LL, 32767LL);
-    i64 ir2 = std::clamp(mac2, -32768LL, 32767LL);
-    i64 ir3 = std::clamp(mac3, -32768LL, 32767LL);
+    i64 ir1 = std::clamp<i64>(mac1, -32768LL, 32767LL);
+    i64 ir2 = std::clamp<i64>(mac2, -32768LL, 32767LL);
+    i64 ir3 = std::clamp<i64>(mac3, -32768LL, 32767LL);
 
     dr_[9] = static_cast<u32>(static_cast<i32>(ir1));  // IR1
     dr_[10] = static_cast<u32>(static_cast<i32>(ir2)); // IR2
@@ -283,9 +283,9 @@ void Gte::rtpt() {
             mac3 >>= shift;
         }
 
-        i64 ir1 = std::clamp(mac1, -32768LL, 32767LL);
-        i64 ir2 = std::clamp(mac2, -32768LL, 32767LL);
-        i64 ir3 = std::clamp(mac3, -32768LL, 32767LL);
+        i64 ir1 = std::clamp<i64>(mac1, -32768LL, 32767LL);
+        i64 ir2 = std::clamp<i64>(mac2, -32768LL, 32767LL);
+        i64 ir3 = std::clamp<i64>(mac3, -32768LL, 32767LL);
 
         if (i == 2) {
             dr_[9] = static_cast<u32>(static_cast<i32>(ir1));
@@ -568,9 +568,9 @@ void Gte::ncds() {
         mac3 >>= shift;
     }
 
-    i64 ir1 = std::clamp(mac1, -32768LL, 32767LL);
-    i64 ir2 = std::clamp(mac2, -32768LL, 32767LL);
-    i64 ir3 = std::clamp(mac3, -32768LL, 32767LL);
+    i64 ir1 = std::clamp<i64>(mac1, -32768LL, 32767LL);
+    i64 ir2 = std::clamp<i64>(mac2, -32768LL, 32767LL);
+    i64 ir3 = std::clamp<i64>(mac3, -32768LL, 32767LL);
 
     dr_[9] = static_cast<u32>(static_cast<i32>(ir1));
     dr_[10] = static_cast<u32>(static_cast<i32>(ir2));
@@ -640,9 +640,9 @@ void Gte::ncdt() {
             mac3 >>= shift;
         }
 
-        i64 ir1 = std::clamp(mac1, -32768LL, 32767LL);
-        i64 ir2 = std::clamp(mac2, -32768LL, 32767LL);
-        i64 ir3 = std::clamp(mac3, -32768LL, 32767LL);
+        i64 ir1 = std::clamp<i64>(mac1, -32768LL, 32767LL);
+        i64 ir2 = std::clamp<i64>(mac2, -32768LL, 32767LL);
+        i64 ir3 = std::clamp<i64>(mac3, -32768LL, 32767LL);
 
         if (i == 2) {
             dr_[9] = static_cast<u32>(static_cast<i32>(ir1));
@@ -704,9 +704,9 @@ void Gte::ncss() {
         mac3 >>= shift;
     }
 
-    i64 ir1 = std::clamp(mac1, -32768LL, 32767LL);
-    i64 ir2 = std::clamp(mac2, -32768LL, 32767LL);
-    i64 ir3 = std::clamp(mac3, -32768LL, 32767LL);
+    i64 ir1 = std::clamp<i64>(mac1, -32768LL, 32767LL);
+    i64 ir2 = std::clamp<i64>(mac2, -32768LL, 32767LL);
+    i64 ir3 = std::clamp<i64>(mac3, -32768LL, 32767LL);
 
     dr_[9] = static_cast<u32>(static_cast<i32>(ir1));
     dr_[10] = static_cast<u32>(static_cast<i32>(ir2));
@@ -758,9 +758,9 @@ void Gte::ncst() {
         int shift = (cr_[29] >> 10) & 0x1F;
         if (shift) { mac1 >>= shift; mac2 >>= shift; mac3 >>= shift; }
 
-        i64 ir1 = std::clamp(mac1, -32768LL, 32767LL);
-        i64 ir2 = std::clamp(mac2, -32768LL, 32767LL);
-        i64 ir3 = std::clamp(mac3, -32768LL, 32767LL);
+        i64 ir1 = std::clamp<i64>(mac1, -32768LL, 32767LL);
+        i64 ir2 = std::clamp<i64>(mac2, -32768LL, 32767LL);
+        i64 ir3 = std::clamp<i64>(mac3, -32768LL, 32767LL);
 
         if (i == 2) {
             dr_[9] = static_cast<u32>(static_cast<i32>(ir1));
@@ -906,7 +906,7 @@ void Gte::op_cc(u32 opcode) {
     }
 }
 
-void Gte::rtv0(u32 opcode) {
+void Gte::rtv0(u32 /*opcode*/) {
     i64 vx = sign16(dr_[0] & 0xFFFF);
     i64 vy = sign16((dr_[0] >> 16) & 0xFFFF);
     i64 vz = sign16(dr_[1] & 0xFFFF);
@@ -940,9 +940,9 @@ void Gte::rtv0(u32 opcode) {
         dr_[10] = sat(mac2, 32767);
         dr_[11] = sat(mac3, 32767);
     } else {
-        dr_[9] = std::clamp(mac1, -32768LL, 32767LL);
-        dr_[10] = std::clamp(mac2, -32768LL, 32767LL);
-        dr_[11] = std::clamp(mac3, -32768LL, 32767LL);
+        dr_[9] = std::clamp<i64>(mac1, -32768LL, 32767LL);
+        dr_[10] = std::clamp<i64>(mac2, -32768LL, 32767LL);
+        dr_[11] = std::clamp<i64>(mac3, -32768LL, 32767LL);
     }
 
     cr_[16] = static_cast<u32>(mac1 & 0xFFFFFFFF);
@@ -950,7 +950,7 @@ void Gte::rtv0(u32 opcode) {
     cr_[18] = static_cast<u32>(mac3 & 0xFFFFFFFF);
 }
 
-void Gte::rtv1(u32 opcode) {
+void Gte::rtv1(u32 /*opcode*/) {
     i64 vx = sign16(dr_[2] & 0xFFFF);
     i64 vy = sign16((dr_[2] >> 16) & 0xFFFF);
     i64 vz = sign16(dr_[3] & 0xFFFF);
@@ -984,9 +984,9 @@ void Gte::rtv1(u32 opcode) {
         dr_[10] = sat(mac2, 32767);
         dr_[11] = sat(mac3, 32767);
     } else {
-        dr_[9] = std::clamp(mac1, -32768LL, 32767LL);
-        dr_[10] = std::clamp(mac2, -32768LL, 32767LL);
-        dr_[11] = std::clamp(mac3, -32768LL, 32767LL);
+        dr_[9] = std::clamp<i64>(mac1, -32768LL, 32767LL);
+        dr_[10] = std::clamp<i64>(mac2, -32768LL, 32767LL);
+        dr_[11] = std::clamp<i64>(mac3, -32768LL, 32767LL);
     }
 
     cr_[16] = static_cast<u32>(mac1 & 0xFFFFFFFF);
@@ -994,7 +994,7 @@ void Gte::rtv1(u32 opcode) {
     cr_[18] = static_cast<u32>(mac3 & 0xFFFFFFFF);
 }
 
-void Gte::rtv2(u32 opcode) {
+void Gte::rtv2(u32 /*opcode*/) {
     i64 vx = sign16(dr_[4] & 0xFFFF);
     i64 vy = sign16((dr_[4] >> 16) & 0xFFFF);
     i64 vz = sign16(dr_[5] & 0xFFFF);
@@ -1028,9 +1028,9 @@ void Gte::rtv2(u32 opcode) {
         dr_[10] = sat(mac2, 32767);
         dr_[11] = sat(mac3, 32767);
     } else {
-        dr_[9] = std::clamp(mac1, -32768LL, 32767LL);
-        dr_[10] = std::clamp(mac2, -32768LL, 32767LL);
-        dr_[11] = std::clamp(mac3, -32768LL, 32767LL);
+        dr_[9] = std::clamp<i64>(mac1, -32768LL, 32767LL);
+        dr_[10] = std::clamp<i64>(mac2, -32768LL, 32767LL);
+        dr_[11] = std::clamp<i64>(mac3, -32768LL, 32767LL);
     }
 
     cr_[16] = static_cast<u32>(mac1 & 0xFFFFFFFF);
